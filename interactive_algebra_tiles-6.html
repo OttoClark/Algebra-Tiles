@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Algebra Tiles</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    #toolbar {
+      padding: 10px;
+      background: #f0f0f0;
+    }
+    .tile {
+      width: 40px;
+      height: 40px;
+      line-height: 40px;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      border-radius: 5px;
+      position: absolute;
+      cursor: move;
+    }
+    .tile[data-type="+1"] { background: green; }
+    .tile[data-type="-1"] { background: red; }
+    .tile[data-type="+x"] { background: blue; }
+    .tile[data-type="-x"] { background: orange; }
+    .tile[data-type="+x2"] { background: purple; }
+    .tile[data-type="-x2"] { background: brown; }
+
+    #mat {
+      position: relative;
+      width: 800px;
+      height: 400px;
+      margin: 20px auto;
+      border: 2px solid #333;
+      display: flex;
+    }
+    #left, #right {
+      flex: 1;
+      position: relative;
+      border-right: 1px solid #333;
+    }
+    #right {
+      border-right: none;
+    }
+    #equal-sign {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: black;
+      z-index: 1;
+    }
+    #trash {
+      width: 100px;
+      height: 100px;
+      background: #ccc;
+      border: 2px dashed #666;
+      text-align: center;
+      line-height: 100px;
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <button onclick="addTile('+1')">+1</button>
+  <button onclick="addTile('-1')">-1</button>
+  <button onclick="addTile('+x')">+x</button>
+  <button onclick="addTile('-x')">-x</button>
+  <button onclick="addTile('+x2')">+x²</button>
+  <button onclick="addTile('-x2')">-x²</button>
+  <button onclick="clearWorkspace()">Clear Workspace</button>
+</div>
+
+<div id="mat">
+  <div id="left"></div>
+  <div id="right"></div>
+  <div id="equal-sign"></div>
+  <div id="trash">🗑️</div>
+</div>
+
+<script>
+  let tileId = 0;
+
+  function addTile(type) {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.dataset.type = type;
+    tile.textContent = type;
+    tile.style.left = '10px';
+    tile.style.top = '10px';
+    tile.id = 'tile-' + tileId++;
+    tile.draggable = true;
+
+    tile.addEventListener('dragstart', dragStart);
+    tile.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      tile.remove();
+    });
+
+    document.getElementById('mat').appendChild(tile);
+  }
+
+  function dragStart(e) {
+    e.dataTransfer.setData('text/plain', e.target.id);
+  }
+
+  document.getElementById('mat').addEventListener('dragover', function(e) {
+    e.preventDefault();
+  });
+
+  document.getElementById('mat').addEventListener('drop', function(e) {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    const tile = document.getElementById(id);
+    const matRect = document.getElementById('mat').getBoundingClientRect();
+    tile.style.left = (e.clientX - matRect.left - 20) + 'px';
+    tile.style.top = (e.clientY - matRect.top - 20) + 'px';
+
+    checkForCancellation(tile);
+  });
+
+  document.getElementById('trash').addEventListener('dragover', function(e) {
+    e.preventDefault();
+  });
+
+  document.getElementById('trash').addEventListener('drop', function(e) {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    const tile = document.getElementById(id);
+    tile.remove();
+  });
+
+  function clearWorkspace() {
+    document.querySelectorAll('.tile').forEach(tile => tile.remove());
+  }
+
+  function checkForCancellation(tile) {
+    const tiles = document.querySelectorAll('.tile');
+    const rect1 = tile.getBoundingClientRect();
+    for (let other of tiles) {
+      if (other === tile) continue;
+      const rect2 = other.getBoundingClientRect();
+      const overlap = !(rect1.right < rect2.left || rect1.left > rect2.right ||
+                        rect1.bottom < rect2.top || rect1.top > rect2.bottom);
+      if (overlap && isOpposite(tile.dataset.type, other.dataset.type)) {
+        tile.remove();
+        other.remove();
+        break;
+      }
+    }
+  }
+
+  function isOpposite(type1, type2) {
+    return (type1 === '+1' && type2 === '-1') || (type1 === '-1' && type2 === '+1') ||
+           (type1 === '+x' && type2 === '-x') || (type1 === '-x' && type2 === '+x') ||
+           (type1 === '+x2' && type2 === '-x2') || (type1 === '-x2' && type2 === '+x2');
+  }
+</script>
+
+</body>
+</html>
